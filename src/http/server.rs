@@ -9,9 +9,9 @@ pub struct Server {
 }
 
 impl Server {
-    pub fn new(handle: Handler) -> Self {
+    pub fn new(handler: Handler) -> Self {
         Self {
-            handle: Arc::new(handle)
+            handle: Arc::new(handler)
         }
     }
 
