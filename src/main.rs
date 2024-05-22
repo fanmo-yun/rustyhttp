@@ -1,5 +1,11 @@
+use http::{handle::Handler, server::Server};
+
 mod http;
 
-fn main() {
-    
+#[tokio::main]
+async fn main() {
+    let webserver = Server::new(
+        Handler::new()
+    );
+    webserver.run().await.unwrap();
 }
