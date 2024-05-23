@@ -40,23 +40,27 @@ impl Handler {
         let buf_reader = BufReader::with_capacity(1024, reader);
         let buf_writer = BufWriter::with_capacity(1024, writer);
 
-        let req = self.read_request(buf_reader).await?;
-        self.process_request_path(req, buf_writer).await?;
+        self.process_request_path(buf_reader, buf_writer).await?;
 
         Ok(())
     }
 
-    pub async fn process_request_path<T: AsyncWriteExt + Unpin>(
+    pub async fn process_request_path<T: AsyncReadExt + Unpin, U: AsyncWriteExt + Unpin>(
         &self,
-        request: String,
-        response: BufWriter<T>,
+        request: BufReader<T>,
+        response: BufWriter<U>,
     ) -> io::Result<()> {
-        let request_parts: Vec<&str> = request.split_whitespace().collect();
+        let req = self.read_request(request).await?;
+        let request_parts: Vec<&str> = req.split_whitespace().collect();
         let method = request_parts[0];
         let path = request_parts[1];
 
         if method == "GET" {
-            let res = format!("HTTP/1.1 200 OK\r\nContent-Length: {}\r\n\r\n{}", path.len(), path);
+            let res = format!(
+                "HTTP/1.1 200 OK\r\nContent-Length: {}\r\n\r\n{}",
+                path.len(),
+                path
+            );
             self.write_response(response, &res).await?;
         }
         Ok(())
