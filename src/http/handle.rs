@@ -49,15 +49,15 @@ impl Handler {
     pub async fn process_request_path<T: AsyncWriteExt + Unpin>(
         &self,
         request: String,
-        writer: BufWriter<T>,
+        response: BufWriter<T>,
     ) -> io::Result<()> {
         let request_parts: Vec<&str> = request.split_whitespace().collect();
         let method = request_parts[0];
         let path = request_parts[1];
 
         if method == "GET" {
-            let response = format!("HTTP/1.1 200 OK\r\nContent-Length: {}\r\n\r\n{}", path.len(), path);
-            self.write_response(writer, &response).await?;
+            let res = format!("HTTP/1.1 200 OK\r\nContent-Length: {}\r\n\r\n{}", path.len(), path);
+            self.write_response(response, &res).await?;
         }
         Ok(())
     }
