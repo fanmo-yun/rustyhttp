@@ -4,15 +4,29 @@ use tokio::{
     net::TcpStream,
 };
 
+use crate::utils::file_utils::Utils;
+
 #[derive(Debug)]
-pub struct Handler;
+pub struct Handler {
+    _utils: Utils,
+    cap_size: usize
+}
+
+impl Default for Handler {
+    fn default() -> Self {
+        Self::new()
+    }
+}
 
 impl Handler {
     pub fn new() -> Self {
-        Self
+        Self {
+            _utils: Utils,
+            cap_size: 4096
+        }
     }
 
-    pub async fn read_request<T: AsyncReadExt + Unpin>(
+    async fn read_request<T: AsyncReadExt + Unpin>(
         &self,
         mut reader: BufReader<T>,
     ) -> io::Result<String> {
@@ -24,7 +38,7 @@ impl Handler {
         Ok(request_str)
     }
 
-    pub async fn write_response<T: AsyncWriteExt + Unpin>(
+    async fn write_response<T: AsyncWriteExt + Unpin>(
         &self,
         mut writer: BufWriter<T>,
         context: &str,
@@ -34,18 +48,7 @@ impl Handler {
         Ok(())
     }
 
-    pub async fn process_client(&self, mut client: TcpStream) -> Result<(), Box<dyn Error>> {
-        let (reader, writer) = client.split();
-
-        let buf_reader = BufReader::with_capacity(1024, reader);
-        let buf_writer = BufWriter::with_capacity(1024, writer);
-
-        self.process_request_path(buf_reader, buf_writer).await?;
-
-        Ok(())
-    }
-
-    pub async fn process_request_path<T: AsyncReadExt + Unpin, U: AsyncWriteExt + Unpin>(
+    async fn process_request_path<T: AsyncReadExt + Unpin, U: AsyncWriteExt + Unpin>(
         &self,
         request: BufReader<T>,
         response: BufWriter<U>,
@@ -63,6 +66,21 @@ impl Handler {
             );
             self.write_response(response, &res).await?;
         }
+        Ok(())
+    }
+
+    // async fn read_file_from_path() {
+        
+    // }
+
+    pub async fn process_client(&self, mut client: TcpStream) -> Result<(), Box<dyn Error>> {
+        let (reader, writer) = client.split();
+
+        let buf_reader = BufReader::with_capacity(self.cap_size, reader);
+        let buf_writer = BufWriter::with_capacity(self.cap_size, writer);
+
+        self.process_request_path(buf_reader, buf_writer).await?;
+
         Ok(())
     }
 }
