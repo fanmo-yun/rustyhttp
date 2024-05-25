@@ -1,6 +1,7 @@
 use std::{future::Future, path::Path, pin::Pin};
-
 use tokio::{fs, io};
+
+use super::file_type::FileType;
 
 #[derive(Debug)]
 pub struct Utils;
@@ -19,26 +20,28 @@ impl Utils {
     pub async fn read_directories_and_files<T: AsRef<Path> + Send + 'static>(
         &self,
         path: T,
-    ) -> io::Result<()> {
+    ) -> io::Result<Vec<FileType>> {
+        let mut file_list = Vec::new();
         let mut entries = fs::read_dir(path).await?;
 
         while let Some(entry) = entries.next_entry().await? {
             let path = entry.path();
 
             if path.is_dir() {
-                println!("Directory: {}", path.display());
-                self.read_directories(path).await?;
+                file_list.push(FileType::Dir { filename: path.display().to_string() });
+                let subdir_files = self.read_directories(path).await?;
+                file_list.extend(subdir_files);
             } else {
-                println!("File: {}", path.display());
+                file_list.push(FileType::Normal { filename: path.display().to_string() });
             }
         }
-        Ok(())
+        Ok(file_list)
     }
 
     fn read_directories<T: AsRef<Path> + Send + 'static>(
         &self,
         path: T,
-    ) -> Pin<Box<dyn Future<Output = io::Result<()>> + Send + '_>> {
+    ) -> Pin<Box<dyn Future<Output = io::Result<Vec<FileType>>> + Send + '_>> {
         Box::pin(async move { self.read_directories_and_files(path).await })
     }
 }

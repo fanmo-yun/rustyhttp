@@ -1,6 +1,6 @@
 use std::error::Error;
 use tokio::{
-    io::{self, AsyncBufReadExt, AsyncReadExt, AsyncWriteExt, BufReader, BufWriter},
+    io::{AsyncBufReadExt, AsyncReadExt, AsyncWriteExt, BufReader, BufWriter},
     net::TcpStream,
 };
 
@@ -29,7 +29,7 @@ impl Handler {
     async fn read_request<T: AsyncReadExt + Unpin>(
         &self,
         mut reader: BufReader<T>,
-    ) -> io::Result<String> {
+    ) -> tokio::io::Result<String> {
         let mut http_request = Vec::new();
         let n = reader.read_until(b'\n', &mut http_request).await?;
         let request_str = String::from_utf8_lossy(&http_request[..n])
@@ -42,7 +42,7 @@ impl Handler {
         &self,
         mut writer: BufWriter<T>,
         context: &str,
-    ) -> io::Result<()> {
+    ) -> tokio::io::Result<()> {
         writer.write_all(context.as_bytes()).await?;
         writer.flush().await?;
         Ok(())
@@ -52,7 +52,7 @@ impl Handler {
         &self,
         request: BufReader<T>,
         response: BufWriter<U>,
-    ) -> io::Result<()> {
+    ) -> tokio::io::Result<()> {
         let req = self.read_request(request).await?;
         let request_parts: Vec<&str> = req.split_whitespace().collect();
         let method = request_parts[0];
@@ -69,8 +69,12 @@ impl Handler {
         Ok(())
     }
 
-    // async fn read_file_from_path() {
-        
+    // TODO
+    // async fn read_file_from_path(&self, web_path: &str) -> tokio::io::Result<String> {
+    //     match web_path {
+    //         _ => {}
+    //     }
+    //     Ok("".to_string())
     // }
 
     pub async fn process_client(&self, mut client: TcpStream) -> Result<(), Box<dyn Error>> {
