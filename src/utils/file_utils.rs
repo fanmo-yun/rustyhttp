@@ -1,5 +1,5 @@
 use std::{future::Future, path::Path, pin::Pin};
-use tokio::{fs, io};
+use tokio::fs;
 
 use super::file_type::FileType;
 
@@ -20,7 +20,7 @@ impl Utils {
     pub async fn read_directories_and_files<T: AsRef<Path> + Send + 'static>(
         &self,
         path: T,
-    ) -> io::Result<Vec<FileType>> {
+    ) -> tokio::io::Result<Vec<FileType>> {
         let mut file_list = Vec::new();
         let mut entries = fs::read_dir(path).await?;
 
@@ -41,7 +41,7 @@ impl Utils {
     fn read_directories<T: AsRef<Path> + Send + 'static>(
         &self,
         path: T,
-    ) -> Pin<Box<dyn Future<Output = io::Result<Vec<FileType>>> + Send + '_>> {
+    ) -> Pin<Box<dyn Future<Output = tokio::io::Result<Vec<FileType>>> + Send + '_>> {
         Box::pin(async move { self.read_directories_and_files(path).await })
     }
 }

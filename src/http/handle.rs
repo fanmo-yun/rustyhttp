@@ -1,14 +1,14 @@
-use std::error::Error;
+use std::{error::Error, path::Path};
 use tokio::{
     io::{AsyncBufReadExt, AsyncReadExt, AsyncWriteExt, BufReader, BufWriter},
     net::TcpStream,
 };
 
-use crate::utils::file_utils::Utils;
+use crate::utils::{file_type::FileType, file_utils::Utils};
 
 #[derive(Debug)]
 pub struct Handler {
-    _utils: Utils,
+    utils: Utils,
     cap_size: usize
 }
 
@@ -21,7 +21,7 @@ impl Default for Handler {
 impl Handler {
     pub fn new() -> Self {
         Self {
-            _utils: Utils,
+            utils: Utils,
             cap_size: 4096
         }
     }
@@ -41,7 +41,7 @@ impl Handler {
     async fn write_response<T: AsyncWriteExt + Unpin>(
         &self,
         mut writer: BufWriter<T>,
-        context: &str,
+        context: String,
     ) -> tokio::io::Result<()> {
         writer.write_all(context.as_bytes()).await?;
         writer.flush().await?;
@@ -58,24 +58,26 @@ impl Handler {
         let method = request_parts[0];
         let path = request_parts[1];
 
-        if method == "GET" {
-            let res = format!(
-                "HTTP/1.1 200 OK\r\nContent-Length: {}\r\n\r\n{}",
-                path.len(),
-                path
-            );
-            self.write_response(response, &res).await?;
-        }
+        let res = self.read_file_from_path(method, path).await;
+        self.write_response(response, res).await?;
         Ok(())
     }
 
     // TODO
-    // async fn read_file_from_path(&self, web_path: &str) -> tokio::io::Result<String> {
-    //     match web_path {
-    //         _ => {}
-    //     }
-    //     Ok("".to_string())
-    // }
+    async fn read_file_from_path(&self, method: &str, web_path: &str) -> String {
+        match (method, web_path) {
+            ("GET", path) => {
+                return format!(
+                    "HTTP/1.1 200 OK\r\nContent-Length: {}\r\n\r\n{}",
+                    path.len(),
+                    path
+                );
+            },
+            _ => {
+                return String::from("HTTP/1.1 405 Method Not Allowed\r\n\r\nMethod Not Allowed");
+            }
+        }
+    }
 
     pub async fn process_client(&self, mut client: TcpStream) -> Result<(), Box<dyn Error>> {
         let (reader, writer) = client.split();
