@@ -1,15 +1,18 @@
-use std::{error::Error, path::Path};
+use std::{
+    error::Error,
+    path::{Path, PathBuf},
+};
 use tokio::{
     io::{AsyncBufReadExt, AsyncReadExt, AsyncWriteExt, BufReader, BufWriter},
     net::TcpStream,
 };
 
-use crate::utils::{file_type::FileType, file_utils::Utils};
+use crate::utils::file_utils::Utils;
 
 #[derive(Debug)]
 pub struct Handler {
     utils: Utils,
-    cap_size: usize
+    cap_size: usize,
 }
 
 impl Default for Handler {
@@ -21,9 +24,19 @@ impl Default for Handler {
 impl Handler {
     pub fn new() -> Self {
         Self {
-            utils: Utils,
-            cap_size: 4096
+            utils: Utils::new(Path::new("views")),
+            cap_size: 4096,
         }
+    }
+
+    async fn construct_response(&self, status: &str, content_type: &str, body: &[u8]) -> String {
+        format!(
+            "HTTP/1.1 {}\r\nContent-Type: {}\r\nContent-Length: {}\r\n\r\n{}",
+            status,
+            content_type,
+            body.len(),
+            String::from_utf8_lossy(body)
+        )
     }
 
     async fn read_request<T: AsyncReadExt + Unpin>(
@@ -63,18 +76,44 @@ impl Handler {
         Ok(())
     }
 
-    // TODO
     async fn read_file_from_path(&self, method: &str, web_path: &str) -> String {
         match (method, web_path) {
-            ("GET", path) => {
-                return format!(
-                    "HTTP/1.1 200 OK\r\nContent-Length: {}\r\n\r\n{}",
-                    path.len(),
-                    path
-                );
+            ("GET", "/") => match self.utils.read_file("index.html").await {
+                Ok(contents) => {
+                    self.construct_response("200 OK", "text/html", &contents)
+                        .await
+                }
+                Err(_) => {
+                    self.construct_response("404 Not Found", "text/plain", b"Not Found")
+                        .await
+                }
             },
+            ("GET", path) => {
+                let path_parts: Vec<&str> = path.split('/').collect();
+                let mut relative_path = PathBuf::new();
+
+                for part in &path_parts[1..] {
+                    relative_path.push(part);
+                }
+
+                match self.utils.read_file(Path::new(&relative_path)).await {
+                    Ok(contents) => {
+                        self.construct_response("200 OK", "text/html", &contents)
+                            .await
+                    }
+                    Err(_) => {
+                        self.construct_response("404 Not Found", "text/plain", b"Not Found")
+                            .await
+                    }
+                }
+            }
             _ => {
-                return String::from("HTTP/1.1 405 Method Not Allowed\r\n\r\nMethod Not Allowed");
+                self.construct_response(
+                    "405 Method Not Allowed",
+                    "text/plain",
+                    b"Method Not Allowed",
+                )
+                .await
             }
         }
     }
