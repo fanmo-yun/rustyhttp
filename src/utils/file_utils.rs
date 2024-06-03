@@ -1,9 +1,12 @@
 use std::path::Path;
-use tokio::{fs::File, io::{AsyncReadExt, BufReader}};
+use tokio::{
+    fs::File,
+    io::{AsyncReadExt, BufReader},
+};
 
 #[derive(Debug)]
 pub struct Utils {
-    dir: &'static Path
+    dir: &'static Path,
 }
 
 impl Utils {
@@ -39,13 +42,12 @@ impl Utils {
     //     Box::pin(async move { self.read_directories_and_files(path).await })
     // }
 
-    pub async fn read_file<T: AsRef<Path>>(&self, file: T) -> tokio::io::Result<Vec<u8>> {
-        let full_path = self.dir.join(file);
+    pub async fn read_file<T: AsRef<Path>>(&self, file_path: T) -> tokio::io::Result<Vec<u8>> {
+        let full_path = self.dir.join(file_path);
         let file = File::open(full_path).await?;
         let mut reader = BufReader::new(file);
         let mut context = Vec::new();
         reader.read_to_end(&mut context).await?;
         Ok(context)
     }
-
 }

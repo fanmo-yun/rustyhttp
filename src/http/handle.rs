@@ -83,9 +83,14 @@ impl Handler {
                     self.construct_response("200 OK", "text/html", &contents)
                         .await
                 }
-                Err(_) => {
-                    self.construct_response("404 Not Found", "text/plain", b"Not Found")
-                        .await
+                Err(e) => {
+                    if e.kind() == tokio::io::ErrorKind::PermissionDenied {
+                        self.construct_response("404 Not Found", "text/plain", b"Not Found")
+                            .await
+                    } else {
+                        self.construct_response("404 Not Found", "text/plain", b"Not Found")
+                            .await
+                    }
                 }
             },
             ("GET", path) => {
