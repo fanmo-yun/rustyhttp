@@ -44,6 +44,7 @@ impl Utils {
 
     pub async fn read_file<T: AsRef<Path>>(&self, file_path: T) -> tokio::io::Result<Vec<u8>> {
         let full_path = self.dir.join(file_path);
+        println!("{:#?}", full_path.to_str());
         let file = File::open(full_path).await?;
         let mut reader = BufReader::new(file);
         let mut context = Vec::new();

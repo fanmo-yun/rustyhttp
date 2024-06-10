@@ -68,6 +68,13 @@ impl Handler {
     ) -> tokio::io::Result<()> {
         let req = self.read_request(request).await?;
         let request_parts: Vec<&str> = req.split_whitespace().collect();
+
+        if request_parts.len() < 2 {
+            let res = self.construct_response("400 Bad Request", "Bad Request", b"Bad Request").await;
+            self.write_response(response, res).await?;
+            return Ok(());
+        }
+
         let method = request_parts[0];
         let path = request_parts[1];
 
