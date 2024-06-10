@@ -70,7 +70,9 @@ impl Handler {
         let request_parts: Vec<&str> = req.split_whitespace().collect();
 
         if request_parts.len() < 2 {
-            let res = self.construct_response("400 Bad Request", "Bad Request", b"Bad Request").await;
+            let res = self
+                .construct_response("400 Bad Request", "Bad Request", b"Bad Request")
+                .await;
             self.write_response(response, res).await?;
             return Ok(());
         }
@@ -90,14 +92,9 @@ impl Handler {
                     self.construct_response("200 OK", "text/html", &contents)
                         .await
                 }
-                Err(e) => {
-                    if e.kind() == tokio::io::ErrorKind::PermissionDenied {
-                        self.construct_response("404 Not Found", "text/plain", b"Not Found")
-                            .await
-                    } else {
-                        self.construct_response("404 Not Found", "text/plain", b"Not Found")
-                            .await
-                    }
+                Err(_) => {
+                    self.construct_response("404 Not Found", "text/plain", b"Not Found")
+                        .await
                 }
             },
             ("GET", path) => {
